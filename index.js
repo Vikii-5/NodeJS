@@ -1,6 +1,8 @@
 // const express = require("express"); "type": "commonjs"
 import express from "express"; //"type": "module"
 import {MongoClient} from "mongodb";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
 
@@ -75,9 +77,8 @@ const movies = [
   },
 ];
 
-const MONGO_URL = "mongodb://localhost";
 async function createConnection(){
-    const client = new MongoClient(MONGO_URL);
+    const client = new MongoClient(process.env.MONGO_URL);
     await client.connect();
     console.log("Connected to MongoDB");
     return client;
@@ -85,12 +86,15 @@ async function createConnection(){
 
 const client = await createConnection();
 
+app.use(express.json());
+
 const PORT = 4000;
 app.get("/", function (request, response) {
   response.send("Hello, 🌏");
 });
 
-app.get("/movies", function (request, response) {
+app.get("/movies", async function (request, response) {
+  const movies = await client.db("movieDB").collection("movies").find({}).toArray();
     response.send(movies);
 });
 
@@ -101,6 +105,32 @@ app.get("/movies/:id", async function (request, response) {
   const movie = await client.db("movieDB").collection("movies").findOne({ id: id});
   // const movie = movies.find((mv) => mv.id === id);
   movie ? response.send(movie) : response.status(404).send({message: "Movie not found"});
+});
+
+app.delete("/movies/:id", async function (request, response) {
+  console.log("request.params", request.params);
+
+  const { id } = request.params;
+  const result = await client.db("movieDB").collection("movies").deleteOne({ id: id});
+  // const movie = movies.find((mv) => mv.id === id);
+  result ? response.send(result) : response.status(404).send({message: "Movie not found"});
+});
+
+app.put("/movies/:id", async function (request, response) {
+  console.log("request.params", request.params);
+
+  const { id } = request.params;
+  const updateData = request.body;
+  const result = await client.db("movieDB").collection("movies").updateOne({ id: id}, {$set: updateData});
+  // const movie = movies.find((mv) => mv.id === id);
+  result ? response.send(result) : response.status(404).send({message: "Movie not found"});
+});
+
+app.post("/movies", async function (request, response) {
+  const newMovies = request.body;
+  console.log(newMovies);
+  const result = await client.db("movieDB").collection("movies").insertMany(newMovies);
+  response.send(result);
 });
 
 app.listen(PORT, () => console.log(`Example app listening on port ${PORT}!`));
