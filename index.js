@@ -2,6 +2,7 @@
 import express from "express"; //"type": "module"
 import {MongoClient} from "mongodb";
 import dotenv from "dotenv";
+import cors from "cors";
 dotenv.config();
 
 const app = express();
@@ -90,6 +91,7 @@ app.use(express.json());
 
 // const PORT = 4000;
 const PORT = process.env.PORT
+app.use(cors())
 
 app.get("/", function (request, response) {
   response.send("Hello, 🌏");
